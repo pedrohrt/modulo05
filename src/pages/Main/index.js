@@ -11,6 +11,7 @@ export default class Main extends Component {
     newRepo: '',
     repositories: [],
     loading: false,
+    repoExist: false,
   };
 
   componentDidMount() {
@@ -30,7 +31,14 @@ export default class Main extends Component {
 
   handleInputChange = e => {
     this.setState({ newRepo: e.target.value });
+    if (e.target.value === '') {
+      this.setState({
+        repoExist: false,
+      });
+    }
   };
+
+  // Adicione um try/catch por volta do código *//
 
   handleSubmit = async e => {
     e.preventDefault();
@@ -39,23 +47,36 @@ export default class Main extends Component {
       loading: true,
     });
 
-    const { newRepo, repositories } = this.state;
+    try {
+      const { newRepo, repositories } = this.state;
 
-    const response = await api.get(`/repos/${newRepo}`);
+      const duplicate = repositories.find(r => r.name === newRepo);
+      if (duplicate) {
+        throw new Error('Repositório duplicado');
+      }
+      const response = await api.get(`/repos/${newRepo}`);
 
-    const data = {
-      name: response.data.full_name,
-    };
+      const data = {
+        name: response.data.full_name,
+      };
 
-    this.setState({
-      repositories: [...repositories, data],
-      newRepo: '',
-      loading: false,
-    });
+      this.setState({
+        repositories: [...repositories, data],
+        newRepo: '',
+        loading: false,
+      });
+    } catch (error) {
+      console.log(error);
+      this.setState({
+        repoExist: true,
+        loading: false,
+      });
+    }
   };
 
   render() {
-    const { newRepo, loading, repositories } = this.state;
+    const { newRepo, loading, repositories, repoExist } = this.state;
+
     return (
       <Container>
         <h1>
@@ -63,7 +84,7 @@ export default class Main extends Component {
           Repositórios
         </h1>
 
-        <Form onSubmit={this.handleSubmit}>
+        <Form onSubmit={this.handleSubmit} repoExist={repoExist}>
           <input
             type="text"
             placeholder="Adicionar repositório"
